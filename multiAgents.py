@@ -14,7 +14,7 @@
 
 from util import manhattanDistance
 from game import Directions
-import random, util
+import random, util, sys
 
 from game import Agent
 
@@ -166,10 +166,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
             Returns the total number of agents in the game
         """
         "*** YOUR CODE HERE ***"
-
-        result = self._maxvalue(gameState)
-
-        return result[1]
+        return self._maxvalue(gameState)[1]
 
     # Max value expand
     # The return value of the function will be a tuple
@@ -247,8 +244,61 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
           Returns the minimax action using self.depth and self.evaluationFunction
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        result = self._maxvalue(gameState, 0, 1, -sys.maxint - 1, sys.maxint)
+
+        return result[1]
+
+    def _maxvalue(self, state, agent_index, depth, alpha, beta):
+        if depth > self.depth:
+            return tuple((self.evaluationFunction(state), None))
+
+        v = -sys.maxint - 1
+        a = None
+
+        actions = state.getLegalActions(agent_index)
+
+        if len(actions) is 0:
+            return tuple((self.evaluationFunction(state), None))
+
+        for action in actions:
+            successor = tuple((state.generateSuccessor(agent_index, action), action))
+            score = self._minvalue(successor[0], 1, depth, alpha, beta)
+
+            if v < score[0]:
+                v = score[0]
+                a = successor[1]
+            if alpha < v:
+                alpha = v
+            if beta < v:
+                return tuple((v, a))
+        return tuple((v, a))
+
+    def _minvalue(self, state, agent_index, depth, alpha, beta):
+        v = sys.maxint
+        a = None
+
+        actions = state.getLegalActions(agent_index)
+
+        if len(actions) is 0:
+            return tuple((self.evaluationFunction(state), None))
+
+        for action in actions:
+            successor = tuple((state.generateSuccessor(agent_index, action), action))
+
+            if agent_index < state.getNumAgents() - 1:
+                score = self._minvalue(successor[0], agent_index + 1, depth, alpha, beta)
+            else:
+                score = self._maxvalue(successor[0], 0, depth + 1, alpha, beta)
+
+            if v > score[0]:
+                v = score[0]
+                a = successor[1]
+            if beta > v:
+                beta = v
+            if alpha > v:
+                return tuple((v, a))
+        return tuple((v, a))
+
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
