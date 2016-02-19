@@ -196,12 +196,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         max_heuristic = max(result, key=lambda x: x[0])[0]          # Max value
         result = [r for r in result if r[0] == max_heuristic]       # Get the lists of the largest value
 
-        # If only one successor state has the largest value, return directly
-        # Else pick the first one that is not STOP
-        if len(result) is 1:
-            return result[0]
-        else:
-            return filter(lambda x: x[1] is not Directions.STOP, result)[0]
+        return result[0]
 
     # Min value expand
     # The return value of the function will be a tuple
@@ -229,11 +224,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
         min_heuristic = min(result, key=lambda x: x[0])[0]          # Min value
         result = [r for r in result if r[0] == min_heuristic]       # The list of succesor state of min value
 
-        if len(result) is 1:
-            return result[0]
-        else:
-            return filter(lambda x: x[1] is not Directions.STOP, result)[0]
-
+        return result[0]
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
@@ -244,59 +235,90 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
           Returns the minimax action using self.depth and self.evaluationFunction
         """
-        result = self._maxvalue(gameState, 0, 1, -sys.maxint - 1, sys.maxint)
+        return self._maxvalue(gameState, 0, 1, -sys.maxint - 1, sys.maxint)[1]
 
-        return result[1]
-
+    # Max value expand
+    # The return value of the function will be a tuple
+    # (max_score, action_to_the_state_of_max_score)
     def _maxvalue(self, state, agent_index, depth, alpha, beta):
+
+        # If maximum depth is exceeded, return the score directly
         if depth > self.depth:
             return tuple((self.evaluationFunction(state), None))
 
-        v = -sys.maxint - 1
-        a = None
+        v = -sys.maxint - 1     # Use a tmp var to get the max score
+        a = None                # Use a tmp var to get the action to the max score
 
-        actions = state.getLegalActions(agent_index)
+        actions = state.getLegalActions(agent_index)       # Possible actions
 
+        # If no possbile actions are possible, return directly
         if len(actions) is 0:
             return tuple((self.evaluationFunction(state), None))
 
+        # Do not call unnecessary generateSuccessor
         for action in actions:
+            # Generate succesor and its score
             successor = tuple((state.generateSuccessor(agent_index, action), action))
             score = self._minvalue(successor[0], 1, depth, alpha, beta)
 
+            # Store the tmp largest value and action accordingly
             if v < score[0]:
                 v = score[0]
                 a = successor[1]
+
+            # Store alpha to the tmp largest value also
             if alpha < v:
                 alpha = v
+
+            # If the tmp maximum exceeds the tmp minimum on the upper level, return directly
+            # The logical here is simple:
+            # Any return value will be larger than this tmp largest value,
+            # However, since there's a smaller tmp smaller value on the upper level
+            # this tmp largest value will never selected, so just prune
             if beta < v:
                 return tuple((v, a))
+
         return tuple((v, a))
 
+    # Min value expand
+    # The return value of the function will be a tuple
+    # (min_score, action_to_the_state_of_min _score)
     def _minvalue(self, state, agent_index, depth, alpha, beta):
-        v = sys.maxint
-        a = None
+        v = sys.maxint      # Tmp minimum value
+        a = None            # action to this tmp minimum value
 
-        actions = state.getLegalActions(agent_index)
+        actions = state.getLegalActions(agent_index)    # Possible moves
 
+        # If no possible moves, return directly
         if len(actions) is 0:
             return tuple((self.evaluationFunction(state), None))
 
         for action in actions:
-            successor = tuple((state.generateSuccessor(agent_index, action), action))
+            successor = tuple((state.generateSuccessor(agent_index, action), action))   # Succesor state
 
+            # If it's last ghost agent, evaluate on the pacman
+            # Else, evaluate on the next ghost
             if agent_index < state.getNumAgents() - 1:
                 score = self._minvalue(successor[0], agent_index + 1, depth, alpha, beta)
             else:
                 score = self._maxvalue(successor[0], 0, depth + 1, alpha, beta)
 
+            # Store the tmp minimum value and the action accordingly
             if v > score[0]:
                 v = score[0]
                 a = successor[1]
+
+            # Store the tmp minimum on beta too
             if beta > v:
                 beta = v
+
+            # If the upper level is still a minimum, alpha won't be changed,
+            # So the pruning won't work.
+            # If the upper level is a maximum, if the tmp minimum is less than
+            # the tmp maximum of that maximum level, stop expanding
             if alpha > v:
                 return tuple((v, a))
+
         return tuple((v, a))
 
 
