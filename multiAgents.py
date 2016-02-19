@@ -73,8 +73,6 @@ class ReflexAgent(Agent):
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
-
-
         "*** YOUR CODE HERE ***"
         oldFoodNum = currentGameState.getNumFood()
         newFoodNum = successorGameState.getNumFood()
@@ -168,7 +166,76 @@ class MinimaxAgent(MultiAgentSearchAgent):
             Returns the total number of agents in the game
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+        result = self._maxvalue(gameState)
+
+        return result[1][1]
+
+    # Max value expand
+    def _maxvalue(self, state, agent_index=0, depth=1):
+
+        actions = state.getLegalActions(agent_index)
+        successors = [tuple((state.generateSuccessor(agent_index, action), action)) for action in actions]
+
+        """
+        print "---------"
+        print "max"
+        print "depth: %d" % depth
+        print state
+        print actions
+        """
+
+        # The return value is a list of tuple of (minvalue, the state of this minvalue)
+        result = [tuple((self._minvalue(s[0], 1, depth)[0], s)) for s in successors]
+
+        # If no action can be taken, this means a terminal condition occurs,
+        # return score directly
+        if len(result) is 0:
+            return tuple((state.getScore(), state))
+
+        max_heuristic = max(result, key=lambda x: x[0])[0]
+        result = [r for r in result if r[0] == max_heuristic]
+
+        if len(result) is 1:
+            return result[0]
+        else:
+            return filter(lambda x: x[1][1] is not Directions.STOP, result)[0]
+
+    # Min value expand
+    def _minvalue(self, state, agent_index, depth):
+
+        actions = state.getLegalActions(agent_index)
+        successors = [tuple((state.generateSuccessor(agent_index, action), action)) for action in actions]
+
+        """
+        print "---------"
+        print "min"
+        print "depth: %d" % depth
+        print state
+        print actions
+        """
+
+        if agent_index < state.getNumAgents() - 1:
+            result = [tuple((self._minvalue(s[0], agent_index + 1, depth)[0], s)) for s in successors]
+        else:
+            if depth >= self.depth:
+                return tuple((state.getScore(), state))
+            else:
+                result = [tuple((self._maxvalue(s[0], 0, depth + 1)[0], s)) for s in successors]
+
+
+        if len(result) is 0:
+            return tuple((state.getScore(), state))
+
+        min_heuristic = min(result, key=lambda x: x[0])[0]
+        result = [r for r in result if r[0] == min_heuristic]
+
+
+        if len(result) is 1:
+            return result[0]
+        else:
+            return filter(lambda x: x[1][1] is not Directions.STOP, result)[0]
+
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
@@ -209,4 +276,6 @@ def betterEvaluationFunction(currentGameState):
 
 # Abbreviation
 better = betterEvaluationFunction
+
+
 
