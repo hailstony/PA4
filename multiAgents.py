@@ -334,8 +334,66 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
           All ghosts should be modeled as choosing uniformly at random from their
           legal moves.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self._maxvalue(gameState, 0, 1)[1]
+
+    # Max value expand
+    # The return value of the function will be a tuple
+    # (max_score, action_to_the_state_of_max_score)
+    def _maxvalue(self, state, agent_index=0, depth=1):
+
+        # If the maximum depth is exceeded, return the evaluted score
+        # Since no action is taken, the place for the action will be None.
+        # However, this won't affect, because it won't be used.
+        if depth > self.depth:
+            return tuple((self.evaluationFunction(state), None))
+
+        # Get all possible actions for this agent,
+        # and generate a list of tuple of (successor_game_state, action_lead_to_this_successor)
+        actions = state.getLegalActions(agent_index)
+        successors = [tuple((state.generateSuccessor(agent_index, action), action)) for action in actions]
+
+        # The return value is a list of tuple of (minvalue, action)
+        # The next agent for maxvalue will always be Ghost No.1
+        result = [tuple((self._expvalue(s[0], 1, depth)[0], s[1])) for s in successors]
+
+        # If no action can be taken, this means a terminal condition occurs,
+        # return score directly
+        if len(result) is 0:
+            return tuple((self.evaluationFunction(state), None))
+
+        max_heuristic = max(result, key=lambda x: x[0])[0]          # Max value
+        result = [r for r in result if r[0] == max_heuristic]       # Get the lists of the largest value
+
+        return result[0]
+
+    # expectation value expand
+    # The return value of the function will be a tuple
+    # (min_score, action_to_the_state_of_min_score)
+    def _expvalue(self, state, agent_index, depth):
+
+        # Get all possible actions for this agent,
+        # and generate a list of tuple of (successor_game_state, action_lead_to_this_successor)
+        actions = state.getLegalActions(agent_index)
+        successors = [tuple((state.generateSuccessor(agent_index, action), action)) for action in actions]
+
+        # If this is not the last ghost, run expvalue again on the next ghost
+        # The return value is a list of tuple of (expvalue, None).
+        # Action here is useless
+        if agent_index < state.getNumAgents() - 1:
+            result = [tuple((self._expvalue(s[0], agent_index + 1, depth)[0], s[1])) for s in successors]
+        # If this is the last ghost, run maxvalue on the pacman, add the depth
+        # The return value is a list of tuple of (maxvalue, action)
+        else:
+            result = [tuple((self._maxvalue(s[0], 0, depth + 1)[0], s[1])) for s in successors]
+
+        # If a terminal condition occurs, return directly
+        if len(result) is 0:
+            return tuple((self.evaluationFunction(state), None))
+
+        # Suppose the estimation of probability to each direction is the same
+        avg = float(sum([r[0] for r in result])) / float(len(result))
+        return tuple((avg, None))
+
 
 def betterEvaluationFunction(currentGameState):
     """
