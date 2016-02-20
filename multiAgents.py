@@ -359,15 +359,23 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         v = -sys.maxint - 1     # Use a tmp var to get the max score
         a = None                # Use a tmp var to get the action to the max score
 
+        print "--------------START--------------"
         for action in actions:
             successor = tuple((state.generateSuccessor(agent_index, action), action))
             score = self._expvalue(successor[0], 1, depth)
+
+            print "max"
+            print successor[0]
+            print successor[1]
+            print score
+            print "---------------"
 
             # Store the tmp largest value and action accordingly
             if v < score[0]:
                 v = score[0]
                 a = successor[1]
 
+        print "--------------END-----------------"
         return tuple((v, a))
 
     # expectation value expand
@@ -394,6 +402,11 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
             else:
                 score = self._maxvalue(successor[0], 0, depth + 1)
 
+            print "exp"
+            print successor[0]
+            print successor[1]
+            print score
+            print "==================="
             sum += score[0]
 
         # Suppose the estimation of probability to each direction is the same
@@ -453,8 +466,8 @@ def betterEvaluationFunction(currentGameState):
     FOOD_SCORE = 80.0
     CAP_SCORE = 3.0
     SPACE_SCORE = 100.0
-    WALL_SCORE = -3.0
-    GHOST_SCORE = -100.0
+    WALL_SCORE = -1.0
+    GHOST_SCORE = -6.0
 
     MAX_STEP = float(util.manhattanDistance((0, 0), (len(map) - 1, len(map[0]) - 1)))
 
@@ -474,7 +487,7 @@ def betterEvaluationFunction(currentGameState):
                     tmp = FOOD_SCORE / food_num
                     item = FOOD
                 elif map[i][j] == ITEMS[CAP]:
-                    tmp = FOOD_SCORE / food_num * 1.1
+                    tmp = FOOD_SCORE / food_num * 0.4
                     item = CAP
                 elif map[i][j] == ITEMS[WALL]:
                     if (i == pos[0] and j == pos[1] - 1) or (i == pos[0] and j == pos[1] + 1) or \
@@ -488,10 +501,14 @@ def betterEvaluationFunction(currentGameState):
                     item = GHOST
 
                 dis = float(util.manhattanDistance(pos, tuple((i, j))))
+
                 v = (MAX_STEP - dis) * tmp
+                # If ghost is to near,
+                if item == GHOST and dis < 3:
+                    v *= 1000.0
                 values[item] += v
 
-    # print values
+    print values
     return sum([values[key] for key in values.keys()])
 
 
