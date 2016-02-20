@@ -350,30 +350,25 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         # Get all possible actions for this agent,
         # and generate a list of tuple of (successor_game_state, action_lead_to_this_successor)
         actions = state.getLegalActions(agent_index)
-        successors = [tuple((state.generateSuccessor(agent_index, action), action)) for action in actions]
-
-        print "original"
-        print state
-        for s in successors:
-            print s[0]
-            print s[1]
-            print self.evaluationFunction(s[0])
-            print "------------"
-        print "$$$$$$$$$$$$$$$$$$$$$$$$"
-
-        # The return value is a list of tuple of (minvalue, action)
-        # The next agent for maxvalue will always be Ghost No.1
-        result = [tuple((self._expvalue(s[0], 1, depth)[0], s[1])) for s in successors]
 
         # If no action can be taken, this means a terminal condition occurs,
         # return score directly
-        if len(result) is 0:
+        if len(actions) is 0:
             return tuple((self.evaluationFunction(state), None))
 
-        max_heuristic = max(result, key=lambda x: x[0])[0]          # Max value
-        result = [r for r in result if r[0] == max_heuristic]       # Get the lists of the largest value
+        v = -sys.maxint - 1     # Use a tmp var to get the max score
+        a = None                # Use a tmp var to get the action to the max score
 
-        return result[0]
+        for action in actions:
+            successor = tuple((state.generateSuccessor(agent_index, action), action))
+            score = self._expvalue(successor[0], 1, depth)
+
+            # Store the tmp largest value and action accordingly
+            if v < score[0]:
+                v = score[0]
+                a = successor[1]
+
+        return tuple((v, a))
 
     # expectation value expand
     # The return value of the function will be a tuple
@@ -383,25 +378,27 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         # Get all possible actions for this agent,
         # and generate a list of tuple of (successor_game_state, action_lead_to_this_successor)
         actions = state.getLegalActions(agent_index)
-        successors = [tuple((state.generateSuccessor(agent_index, action), action)) for action in actions]
 
-        # If this is not the last ghost, run expvalue again on the next ghost
-        # The return value is a list of tuple of (expvalue, None).
-        # Action here is useless
-        if agent_index < state.getNumAgents() - 1:
-            result = [tuple((self._expvalue(s[0], agent_index + 1, depth)[0], s[1])) for s in successors]
-        # If this is the last ghost, run maxvalue on the pacman, add the depth
-        # The return value is a list of tuple of (maxvalue, action)
-        else:
-            result = [tuple((self._maxvalue(s[0], 0, depth + 1)[0], s[1])) for s in successors]
-
-        # If a terminal condition occurs, return directly
-        if len(result) is 0:
-            print self.evaluationFunction(state)
+        # If no action can be taken, this means a terminal condition occurs,
+        # return score directly
+        if len(actions) is 0:
             return tuple((self.evaluationFunction(state), None))
 
+        sum = 0.0       # sum to count the total score
+
+        for action in actions:
+            successor = tuple((state.generateSuccessor(agent_index, action), action))
+
+            if agent_index < state.getNumAgents() - 1:
+                score = self._expvalue(successor[0], agent_index + 1, depth)
+            else:
+                score = self._maxvalue(successor[0], 0, depth + 1)
+
+            sum += score[0]
+
         # Suppose the estimation of probability to each direction is the same
-        avg = float(sum([r[0] for r in result])) / float(len(result))
+        avg = float(sum) / float(len(actions))
+
         return tuple((avg, None))
 
 
@@ -448,23 +445,18 @@ def betterEvaluationFunction(currentGameState):
     for loc in ghosts:
         map[int(loc[0])][int(loc[1])] = ITEMS[GHOST]
 
-    food_num = currentGameState.getNumFood()
+    food_num = currentGameState.getNumFood() + len(capsules)
     if food_num == 0:
         food_num = 1.0
     space_num = sum([len([i for i in m if i == ITEMS[SPACE]]) for m in map])
 
-
-    FOOD_SCORE = 100.0
+    FOOD_SCORE = 80.0
     CAP_SCORE = 3.0
     SPACE_SCORE = 100.0
     WALL_SCORE = -3.0
-    GHOST_SCORE = -20.0
+    GHOST_SCORE = -100.0
 
-    MAX_STEP = max([util.manhattanDistance(tuple((0, 0)), pos),
-                    util.manhattanDistance(tuple((len(map) - 1, len(map[0]) - 1)), pos),
-                    util.manhattanDistance(tuple((len(map) - 1, 0)), pos),
-                    util.manhattanDistance(tuple((0, len(map[0]) - 1)), pos)]) + 1.0
-
+    MAX_STEP = float(util.manhattanDistance((0, 0), (len(map) - 1, len(map[0]) - 1)))
 
     values = dict()
     values[FOOD] = 0
@@ -476,13 +468,13 @@ def betterEvaluationFunction(currentGameState):
     for i in xrange(len(map)):
         for j in xrange(len(map[0])):
             if map[i][j] == ITEMS[SPACE]:
-                values[SPACE] += FOOD_SCORE / food_num * 20.0
+                values[SPACE] += FOOD_SCORE * MAX_STEP
             else:
                 if map[i][j] == ITEMS[FOOD]:
                     tmp = FOOD_SCORE / food_num
                     item = FOOD
                 elif map[i][j] == ITEMS[CAP]:
-                    tmp = CAP_SCORE
+                    tmp = FOOD_SCORE / food_num * 1.1
                     item = CAP
                 elif map[i][j] == ITEMS[WALL]:
                     if (i == pos[0] and j == pos[1] - 1) or (i == pos[0] and j == pos[1] + 1) or \
@@ -499,7 +491,7 @@ def betterEvaluationFunction(currentGameState):
                 v = (MAX_STEP - dis) * tmp
                 values[item] += v
 
-    print values
+    # print values
     return sum([values[key] for key in values.keys()])
 
 
