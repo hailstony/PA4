@@ -352,6 +352,15 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         actions = state.getLegalActions(agent_index)
         successors = [tuple((state.generateSuccessor(agent_index, action), action)) for action in actions]
 
+        print "original"
+        print state
+        for s in successors:
+            print s[0]
+            print s[1]
+            print self.evaluationFunction(s[0])
+            print "------------"
+        print "$$$$$$$$$$$$$$$$$$$$$$$$"
+
         # The return value is a list of tuple of (minvalue, action)
         # The next agent for maxvalue will always be Ghost No.1
         result = [tuple((self._expvalue(s[0], 1, depth)[0], s[1])) for s in successors]
@@ -388,6 +397,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
 
         # If a terminal condition occurs, return directly
         if len(result) is 0:
+            print self.evaluationFunction(state)
             return tuple((self.evaluationFunction(state), None))
 
         # Suppose the estimation of probability to each direction is the same
@@ -403,7 +413,102 @@ def betterEvaluationFunction(currentGameState):
       DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    CAP = "Cap"
+    FOOD = "Food"
+    SPACE = "Space"
+    WALL = "Wall"
+    GHOST = "Ghost"
+
+    ITEMS = {
+        CAP: 2,
+        FOOD: 1,
+        SPACE: 0,
+        WALL: -1,
+        GHOST: -2
+    }
+
+    foods = currentGameState.getFood()
+    walls = currentGameState.getWalls()
+    capsules = currentGameState.getCapsules()
+    ghosts = currentGameState.getGhostPositions()
+    pos = currentGameState.getPacmanPosition()
+
+    map = [[ITEMS[SPACE] for f in food] for food in foods]
+
+    for i, food in enumerate(foods):
+        for j, f in enumerate(food):
+            if foods[i][j] is True:
+                map[i][j] = ITEMS[FOOD]
+            elif walls[i][j] is True:
+                map[i][j] = ITEMS[WALL]
+
+    for loc in capsules:
+        map[loc[0]][loc[1]] = ITEMS[CAP]
+
+    for loc in ghosts:
+        map[int(loc[0])][int(loc[1])] = ITEMS[GHOST]
+
+    food_num = currentGameState.getNumFood()
+    space_num = sum([len([i for i in m if i == ITEMS[SPACE]]) for m in map])
+
+    if space_num / food_num < 1.0:
+        FOOD_SCORE = 1.0
+    elif space_num / food_num < 2.0:
+        FOOD_SCORE = 1.5
+    elif space_num / food_num < 4.0:
+        FOOD_SCORE = 2.0
+    elif space_num / food_num < 8.0:
+        FOOD_SCORE = 4.0
+    else:
+        FOOD_SCORE = 8.0
+
+    CAP_SCORE = 3.0
+    SPACE_SCORE = 100.0
+    WALL_SCORE = -1.0
+    GHOST_SCORE = -20.0
+
+    MAX_STEP = max([util.manhattanDistance(tuple((0, 0)), pos),
+                    util.manhattanDistance(tuple((len(map) - 1, len(map[0]) - 1)), pos),
+                    util.manhattanDistance(tuple((len(map) - 1, 0)), pos),
+                    util.manhattanDistance(tuple((0, len(map[0]) - 1)), pos)]) + 1.0
+
+
+    values = dict()
+    values[FOOD] = 0
+    values[CAP] = 0
+    values[SPACE] = 0
+    values[GHOST] = 0
+    values[WALL] = 0
+
+    for i in xrange(len(map)):
+        for j in xrange(len(map[0])):
+            if map[i][j] == ITEMS[SPACE]:
+                values[SPACE] += SPACE_SCORE
+            else:
+                if map[i][j] == ITEMS[FOOD]:
+                    tmp = FOOD_SCORE
+                    item = FOOD
+                elif map[i][j] == ITEMS[CAP]:
+                    tmp = CAP_SCORE
+                    item = CAP
+                elif map[i][j] == ITEMS[WALL]:
+                    if (i == pos[0] and j == pos[1] - 1) or (i == pos[0] and j == pos[1] + 1) or \
+                       (i == pos[0] - 1 and j == pos[1]) or (i == pos[0] + 1 and j == pos[1]):
+                        tmp = WALL_SCORE
+                    else:
+                        tmp = 0
+                    item = WALL
+                elif map[i][j] == ITEMS[GHOST]:
+                    tmp = GHOST_SCORE
+                    item = GHOST
+
+                dis = float(util.manhattanDistance(pos, tuple((i, j))))
+                v = (MAX_STEP - dis) * tmp
+                values[item] += v
+
+    print values
+    return sum([values[key] for key in values.keys()])
+
 
 # Abbreviation
 better = betterEvaluationFunction
