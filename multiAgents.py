@@ -449,22 +449,15 @@ def betterEvaluationFunction(currentGameState):
         map[int(loc[0])][int(loc[1])] = ITEMS[GHOST]
 
     food_num = currentGameState.getNumFood()
+    if food_num == 0:
+        food_num = 1.0
     space_num = sum([len([i for i in m if i == ITEMS[SPACE]]) for m in map])
 
-    if space_num / food_num < 1.0:
-        FOOD_SCORE = 1.0
-    elif space_num / food_num < 2.0:
-        FOOD_SCORE = 1.5
-    elif space_num / food_num < 4.0:
-        FOOD_SCORE = 2.0
-    elif space_num / food_num < 8.0:
-        FOOD_SCORE = 4.0
-    else:
-        FOOD_SCORE = 8.0
 
+    FOOD_SCORE = 100.0
     CAP_SCORE = 3.0
     SPACE_SCORE = 100.0
-    WALL_SCORE = -1.0
+    WALL_SCORE = -3.0
     GHOST_SCORE = -20.0
 
     MAX_STEP = max([util.manhattanDistance(tuple((0, 0)), pos),
@@ -483,10 +476,10 @@ def betterEvaluationFunction(currentGameState):
     for i in xrange(len(map)):
         for j in xrange(len(map[0])):
             if map[i][j] == ITEMS[SPACE]:
-                values[SPACE] += SPACE_SCORE
+                values[SPACE] += FOOD_SCORE / food_num * 20.0
             else:
                 if map[i][j] == ITEMS[FOOD]:
-                    tmp = FOOD_SCORE
+                    tmp = FOOD_SCORE / food_num
                     item = FOOD
                 elif map[i][j] == ITEMS[CAP]:
                     tmp = CAP_SCORE
