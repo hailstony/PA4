@@ -461,13 +461,12 @@ def betterEvaluationFunction(currentGameState):
     food_num = currentGameState.getNumFood() + len(capsules)
     if food_num == 0:
         food_num = 1.0
-    space_num = sum([len([i for i in m if i == ITEMS[SPACE]]) for m in map])
 
-    FOOD_SCORE = 80.0
+    FOOD_SCORE = 100.0
     CAP_SCORE = 3.0
     SPACE_SCORE = 100.0
-    WALL_SCORE = -1.0
-    GHOST_SCORE = -6.0
+    WALL_SCORE = -0.45
+    GHOST_SCORE = -3.0
 
     MAX_STEP = float(util.manhattanDistance((0, 0), (len(map) - 1, len(map[0]) - 1)))
 
@@ -487,7 +486,7 @@ def betterEvaluationFunction(currentGameState):
                     tmp = FOOD_SCORE / food_num
                     item = FOOD
                 elif map[i][j] == ITEMS[CAP]:
-                    tmp = FOOD_SCORE / food_num * 0.4
+                    tmp = FOOD_SCORE / food_num * 0.5
                     item = CAP
                 elif map[i][j] == ITEMS[WALL]:
                     if (i == pos[0] and j == pos[1] - 1) or (i == pos[0] and j == pos[1] + 1) or \
@@ -503,9 +502,21 @@ def betterEvaluationFunction(currentGameState):
                 dis = float(util.manhattanDistance(pos, tuple((i, j))))
 
                 v = (MAX_STEP - dis) * tmp
-                # If ghost is to near,
-                if item == GHOST and dis < 3:
-                    v *= 1000.0
+                # If ghost is to near, escape
+                if item == GHOST:
+                    index = 1
+                    for p in currentGameState.getGhostPositions():
+                        if int(p[0]) == i and int(p[1]) == j:
+                            print "break"
+                            break
+                        index += 1
+
+                    ghost_state = currentGameState.getGhostState(index)
+
+                    if ghost_state.scaredTimer > 0:
+                        v = FOOD_SCORE * (MAX_STEP - 1)
+                    elif dis < 2:
+                        v *= 2000.0
                 values[item] += v
 
     print values
