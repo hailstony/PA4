@@ -516,11 +516,13 @@ def betterEvaluationFunction(currentGameState):
 
                 if item == GHOST:
                     # Get the ghost's agent index to check the scaredTimer
-                    index = 1
-                    for p in currentGameState.getGhostPositions():
+                    for index in xrange(currentGameState.getNumAgents()):
+                        if index == 0:
+                            continue
+
+                        p = currentGameState.getGhostPosition(index)
                         if int(p[0]) == i and int(p[1]) == j:
                             break
-                        index += 1
 
                     ghost_state = currentGameState.getGhostState(index)
 
