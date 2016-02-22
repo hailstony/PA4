@@ -73,18 +73,19 @@ class ReflexAgent(Agent):
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
+        #print "xxxxxx"
+
         "*** YOUR CODE HERE ***"
         oldFoodNum = currentGameState.getNumFood()
         newFoodNum = successorGameState.getNumFood()
-        flag=1
-        if oldFoodNum-newFoodNum != 0:
-            flag=0
+        gridSize = newFood.width*newFood.height
+        oldSpace = gridSize-oldFoodNum
+        newSpace = gridSize-newFoodNum
+
         minDis = min([manhattanDistance(GhostPos.getPosition(),newPos) for GhostPos in newGhostStates])
         thex=0
         they=0
 
-        #print("reached")
-        #cap = successorGameState.getCapsules()
         if successorGameState.getNumFood()!=0:
             for x in range(newFood.width):
                 for y in range(newFood.height):
@@ -99,18 +100,11 @@ class ReflexAgent(Agent):
 
         #disToFood=0
 
-        """
-        if len(cap)!=0:
-            minCap = min([manhattanDistance(capPos,newPos) for capPos in cap])
-        else:
-            minCap = 0
-            """
-
         if all(newScared for newScared in newScaredTimes)>0:
-            return -(1000)*newFood.count()-10*disToFood-minDis
+            return 10*newSpace-newFood.count()-0.01*disToFood-minDis
         if minDis<5:
-            return -newFood.count()-0.01*disToFood+minDis
-        return -newFood.count()-0.01*disToFood+5
+            return 0.5*newSpace-newFood.count()-0.01*disToFood+minDis
+        return 0.5*newSpace-newFood.count()-0.01*disToFood+5
         "return successorGameState.getScore()"
 
 def scoreEvaluationFunction(currentGameState):
@@ -140,7 +134,8 @@ class MultiAgentSearchAgent(Agent):
 
     def __init__(self, evalFn = 'scoreEvaluationFunction', depth = '2'):
         self.index = 0 # Pacman is always agent index 0
-        self.evaluationFunction = util.lookup(evalFn, globals())
+        #self.evaluationFunction = util.lookup(evalFn, globals())
+        self.evaluationFunction = better
         self.depth = int(depth)
 
 class MinimaxAgent(MultiAgentSearchAgent):
@@ -407,20 +402,9 @@ def betterEvaluationFunction(currentGameState):
       Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
       evaluation function (question 5).
 
-      DESCRIPTION: The intension of the evalutaion is to clear the map, where every possible place is BLANK/SPACE.
-      1. So give the BLANK/SPACE really high positive value to evaluate
-      2. Also give food relatively high positive vaule to evaluate to approach.
-            a. The value of food should increase when the number of foods decreases to dominate the affection
-               of walls and ghost
-      3. Give walls next to the pacman a low negative value to get out of the place with a lot of walls
-      4. Give a ghost a relatively high negative value
-            a. Give it really high negative value when it is near the pacman
-      5. Give Capsule the value which is a little bit higher than the food to make it more attractive
-      6. After eating a capsule, give the ghost a really high positive value instead to chase.
+      DESCRIPTION: <write something here so we know what you did>
     """
     "*** YOUR CODE HERE ***"
-
-    # Define keys, and their id in the map
     CAP = "Cap"
     FOOD = "Food"
     SPACE = "Space"
@@ -435,14 +419,12 @@ def betterEvaluationFunction(currentGameState):
         GHOST: -2
     }
 
-    # Get foods, walls, capsules, ghosts and packman's location
     foods = currentGameState.getFood()
     walls = currentGameState.getWalls()
     capsules = currentGameState.getCapsules()
     ghosts = currentGameState.getGhostPositions()
     pos = currentGameState.getPacmanPosition()
 
-    # Combine them into a single map
     map = [[ITEMS[SPACE] for f in food] for food in foods]
 
     for i, food in enumerate(foods):
@@ -458,20 +440,19 @@ def betterEvaluationFunction(currentGameState):
     for loc in ghosts:
         map[int(loc[0])][int(loc[1])] = ITEMS[GHOST]
 
-    food_num = currentGameState.getNumFood() + len(capsules)    # Number of foods in map
-    # In case the food becomes 0
-    if food_num == 0.0:
+    food_num = currentGameState.getNumFood() + len(capsules)
+    if food_num == 0:
         food_num = 1.0
+    space_num = sum([len([i for i in m if i == ITEMS[SPACE]]) for m in map])
 
-    # Define FOOD, WALL and GHOST's constant
-    FOOD_SCORE = 100.0
-    WALL_SCORE = -0.45
-    GHOST_SCORE = -3.0
+    FOOD_SCORE = 80.0
+    CAP_SCORE = 3.0
+    SPACE_SCORE = 100.0
+    WALL_SCORE = -3.0
+    GHOST_SCORE = -100.0
 
-    # MAX STEPs can go in map
     MAX_STEP = float(util.manhattanDistance((0, 0), (len(map) - 1, len(map[0]) - 1)))
 
-    # Store each category's values separately
     values = dict()
     values[FOOD] = 0
     values[CAP] = 0
@@ -479,26 +460,17 @@ def betterEvaluationFunction(currentGameState):
     values[GHOST] = 0
     values[WALL] = 0
 
-    # Go through each element in map
     for i in xrange(len(map)):
         for j in xrange(len(map[0])):
-
-            # If it is BLANK, give it really high value (which must be higher than any possible food value)
-            # Otherwise packman won't eat it, cuz don't eat will have a higher value.
-            # And space should have no relationship with the distance
             if map[i][j] == ITEMS[SPACE]:
                 values[SPACE] += FOOD_SCORE * MAX_STEP
             else:
-                # Food's value will increase when the number of food decreases
-                # So the food's change in values will dominate the change in values of WALL
                 if map[i][j] == ITEMS[FOOD]:
                     tmp = FOOD_SCORE / food_num
                     item = FOOD
-                # Give CAP a little bit higher value than food to make it more attractive
                 elif map[i][j] == ITEMS[CAP]:
-                    tmp = FOOD_SCORE / food_num * 0.55
+                    tmp = FOOD_SCORE / food_num * 1.1
                     item = CAP
-                # Give WALL a penalty if there's a wall on the 4 possible directions
                 elif map[i][j] == ITEMS[WALL]:
                     if (i == pos[0] and j == pos[1] - 1) or (i == pos[0] and j == pos[1] + 1) or \
                        (i == pos[0] - 1 and j == pos[1]) or (i == pos[0] + 1 and j == pos[1]):
@@ -510,30 +482,11 @@ def betterEvaluationFunction(currentGameState):
                     tmp = GHOST_SCORE
                     item = GHOST
 
-                # Distance from pacman to the element
                 dis = float(util.manhattanDistance(pos, tuple((i, j))))
                 v = (MAX_STEP - dis) * tmp
-
-                if item == GHOST:
-                    # Get the ghost's agent index to check the scaredTimer
-                    for index in xrange(currentGameState.getNumAgents()):
-                        if index == 0:
-                            continue
-
-                        p = currentGameState.getGhostPosition(index)
-                        if int(p[0]) == i and int(p[1]) == j:
-                            break
-
-                    ghost_state = currentGameState.getGhostState(index)
-
-                    # If a ghost can be eaten, give it really high positive value to chase
-                    if ghost_state.scaredTimer > 0:
-                        v = FOOD_SCORE * (MAX_STEP - 1)
-                    # Otherwise, give it really high negative value to escape
-                    elif dis < 2:
-                        v *= 2000.0
                 values[item] += v
 
+    # print values
     return sum([values[key] for key in values.keys()])
 
 
