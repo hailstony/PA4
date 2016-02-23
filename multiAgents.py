@@ -402,7 +402,16 @@ def betterEvaluationFunction(currentGameState):
       Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
       evaluation function (question 5).
 
-      DESCRIPTION: <write something here so we know what you did>
+      DESCRIPTION: The intension of the evalutaion is to clear the map, where every possible place is BLANK/SPACE.
+      1. So give the BLANK/SPACE really high positive value to evaluate
+      2. Also give food relatively high positive vaule to evaluate to approach.
+            a. The value of food should increase when the number of foods decreases to dominate the affection
+               of walls and ghost
+      3. Give walls next to the pacman a low negative value to get out of the place with a lot of walls
+      4. Give a ghost a relatively high negative value
+            a. Give it really high negative value when it is near the pacman
+      5. Give Capsule the value which is a little bit higher than the food to make it more attractive
+      6. After eating a capsule, give the ghost a really high positive value instead to chase.
     """
     "*** YOUR CODE HERE ***"
     # Define keys, and their id in the map
